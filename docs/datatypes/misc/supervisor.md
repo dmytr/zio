@@ -39,6 +39,24 @@ def fiberListSupervisor = for {
 } yield (s)
 ```
 
+### trackFiberLifecycle
+
+The `trackFiberLifecycle` creates a new supervisor using provided callbacks that are called on a corresponding fiber
+lifecycle event.
+
+```scala mdoc:invisible
+import zio.Supervisor
+```
+
+```scala mdoc
+val supervisor = Supervisor.trackFiberLifecycle(
+  unsafeOnStart   = fiberId => println(s"Fiber $fiberId has started"),
+  unsafeOnEnd     = fiberId => println(s"Fiber $fiberId has ended"),
+  unsafeOnSuspend = fiberId => println(s"Fiber $fiberId was suspended"),
+  unsafeOnResume  = fiberId => println(s"Fiber $fiberId was resumed")
+)
+```
+
 ## Supervising
 
 Whenever we need to supervise a ZIO effect, we can call `ZIO#supervised` function, `supervised` takes a supervisor and return another effect. The behavior of children fibers is reported to the provided supervisor:

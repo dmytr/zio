@@ -218,6 +218,45 @@ object Supervisor {
     }
 
   /**
+   * Creates a new supervisor using provided callbacks that are called on a
+   * corresponding fiber lifecycle event.
+   */
+  def trackFiberLifecycle(
+    unsafeOnStart: Fiber.Id => Unit = _ => (),
+    unsafeOnEnd: Fiber.Id => Unit = _ => (),
+    unsafeOnSuspend: Fiber.Id => Unit = _ => (),
+    unsafeOnResume: Fiber.Id => Unit = _ => ()
+  ): Supervisor[Unit] = {
+    val onStart   = unsafeOnStart
+    val onEnd     = unsafeOnEnd
+    val onSuspend = unsafeOnSuspend
+    val onResume  = unsafeOnResume
+
+    new Supervisor[Unit] {
+      override def value: UIO[Unit] = UIO.unit
+
+      override private[zio] def unsafeOnStart[R, E, A](
+        environment: R,
+        effect: ZIO[R, E, A],
+        parent: Option[Fiber.Runtime[Any, Any]],
+        fiber: Fiber.Runtime[E, A]
+      ): Propagation = {
+        onStart(fiber.id)
+        Propagation.Continue
+      }
+
+      override private[zio] def unsafeOnEnd[R, E, A](value: Exit[E, A], fiber: Fiber.Runtime[E, A]): Propagation = {
+        onEnd(fiber.id)
+        Propagation.Continue
+      }
+
+      override private[zio] def unsafeOnSuspend[E, A1](fiber: Fiber.Runtime[E, A1]): Unit = onSuspend(fiber.id)
+
+      override private[zio] def unsafeOnResume[E, A1](fiber: Fiber.Runtime[E, A1]): Unit = onResume(fiber.id)
+    }
+  }
+
+  /**
    * A supervisor that doesn't do anything in response to supervision events.
    */
   val none: Supervisor[Unit] =
